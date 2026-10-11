@@ -16,14 +16,19 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o she
 
 ## 部署（gz）
 
+用 supervisor 托管（`deploy/supervisor.conf`），只监听 `127.0.0.1:18090`，日志在 `/root/shell-rs-server/logs/server.log`。
+
 ```bash
-mkdir -p /root/shell-rs-server/data
+mkdir -p /root/shell-rs-server/data /root/shell-rs-server/logs
 # 上传 shell-rs-server 到 /root/shell-rs-server/
-cp deploy/shell-rs-server.service /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now shell-rs-server
+cp deploy/supervisor.conf /etc/supervisor/conf.d/shell-rs-server.conf
+supervisorctl reread && supervisorctl update shell-rs-server
+supervisorctl status shell-rs-server
 ```
 
-nginx：把 `deploy/nginx-location.conf` 放进 `shell.wcy9.com.conf` 的 443 段，`nginx -t` 后 reload。服务只监听 `127.0.0.1:18090`，`-trust-proxy` 让登录限流按 nginx 给的 `X-Real-IP` 计。
+升级：上传新的二进制（先传成 `shell-rs-server.new` 再 `mv`），然后 `supervisorctl restart shell-rs-server`。
+
+nginx：把 `deploy/nginx-location.conf` 放进 `shell.wcy9.com.conf` 的 443 段，`nginx -t` 后 reload。`-trust-proxy` 让登录限流按 nginx 给的 `X-Real-IP` 计。
 
 ## 账号
 
