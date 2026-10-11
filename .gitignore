@@ -1,0 +1,4 @@
+/shell-rs-server
+/shell-rs-server.exe
+*.db
+*.db-*
