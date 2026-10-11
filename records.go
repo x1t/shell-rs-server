@@ -56,7 +56,7 @@ func (s *Store) pull(userID, since int64) ([]Record, bool, int64, error) {
 		if err := rows.Scan(&r.ID, &r.Revision, &r.Deleted, &r.Data); err != nil {
 			return nil, false, 0, err
 		}
-		records = append(records, r)
+		records = append(records, withData(r))
 	}
 	if err := rows.Err(); err != nil {
 		return nil, false, 0, err
@@ -110,7 +110,16 @@ func recordIn(tx *sql.Tx, userID int64, id string) (Record, bool, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return r, false, nil
 	}
-	return r, err == nil, err
+	return withData(r), err == nil, err
+}
+
+// withData gives a tombstone an empty slice rather than the nil SQLite
+// reads an empty blob as, so it goes out as "" and not null.
+func withData(r Record) Record {
+	if r.Data == nil {
+		r.Data = []byte{}
+	}
+	return r
 }
 
 func putRecord(tx *sql.Tx, userID int64, p Push, revision int64) error {

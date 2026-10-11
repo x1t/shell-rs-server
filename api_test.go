@@ -253,6 +253,20 @@ func TestDeletedRecordsStayAsTombstones(t *testing.T) {
 	if len(pulled.Records) != 1 || !pulled.Records[0].Deleted || len(pulled.Records[0].Data) != 0 {
 		t.Errorf("tombstone: %+v", pulled.Records)
 	}
+
+	// On the wire, an empty string: clients need not take null for bytes.
+	req, _ := http.NewRequest("GET", f.http.URL+"/api/records?since=0", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var raw bytes.Buffer
+	raw.ReadFrom(resp.Body)
+	if !strings.Contains(raw.String(), `"data":""`) {
+		t.Errorf("tombstone on the wire: %s", raw.String())
+	}
 }
 
 func TestALongHistoryComesInPages(t *testing.T) {
